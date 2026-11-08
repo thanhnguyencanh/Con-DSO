@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Con-DSO · PAIRS Lab</title>
+<meta name="description" content="Con-DSO: learning short-horizon consistency priors for RGB-D direct sparse odometry. Paper, video and results.">
+<meta property="og:title" content="Con-DSO: Learning Short-Horizon Consistency Priors for RGB-D Direct Sparse Odometry">
+<meta property="og:description" content="Con-DSO · preprint · PAIRS Lab">
+<meta property="og:image" content="images/uncertainty.jpg">
+<meta name="theme-color" content="#063a7a">
+<link rel="icon" href="https://pairs-lab.github.io/images/brand/pairs-lab-icon-32.png" type="image/png">
+<link rel="stylesheet" href="assets/style.css">
+<script>document.documentElement.classList.add("js")</script>
+<script src="assets/data.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="wrap topbar-row">
+    <a class="lab" href="https://pairs-lab.github.io/"><img src="https://pairs-lab.github.io/images/brand/pairs-lab-horizontal.png" alt="PAIRS Lab" width="120" height="35"></a>
+    <nav class="toc" aria-label="Sections">
+      <a href="#abstract">Abstract</a><a href="#video">Video</a><a href="#method">Method</a><a href="#uncertainty">Uncertainty</a><a href="#results">Results</a><a href="#ablation">Ablation</a><a href="#cite">Cite</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+<section class="hero hero-paper">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="venue"><span>Preprint</span> 2026</p>
+      <h1>Con-DSO</h1>
+      <p class="subtitle">Learning short-horizon consistency priors for RGB-D direct sparse odometry</p>
+      <p class="authors">
+        Haolan Zhang<sup>1</sup>,
+        <a href="https://thanhnguyencanh.github.io/">Thanh Nguyen Canh</a><sup>1</sup>,
+        Chenghao Li<sup>1</sup>,
+        Ziyan Gao<sup>1</sup>,
+        Xiongwen Jiang<sup>2</sup>,
+        <a href="https://www.jaist.ac.jp/robot/">Nak Young Chong</a><sup>1</sup>
+      </p>
+      <p class="affils"><sup>1</sup>Japan Advanced Institute of Science and Technology &nbsp; <sup>2</sup>Shenyang University of Chemical Technology</p>
+      <div class="actions">
+        <a class="btn" href="https://arxiv.org/abs/2605.27952">arXiv <span aria-hidden="true">↗</span></a>
+        <a class="btn btn-solid" href="#video">Video <span aria-hidden="true">▶</span></a>
+      </div>
+    </div>
+    <figure class="teaser">
+      <img src="images/uncertainty.jpg" alt="Learned photometric and geometric uncertainty maps for dynamic, occlusion, illumination-change and normal scenes; brighter means higher predicted uncertainty." width="1800" height="676">
+      <figcaption>Learned uncertainty: high on moving people, occluders and lit windows; mostly on edges in a normal scene.</figcaption>
+    </figure>
+  </div>
+  <div class="wrap"><dl class="counters" id="headline"></dl></div>
+</section>
+
+<section class="block" id="abstract">
+  <div class="wrap two">
+    <div>
+      <p class="kicker">01 · Abstract</p>
+      <h2>Which pixels can direct tracking <em>still trust</em>?</h2>
+    </div>
+    <div class="prose">
+      <p>RGB-D direct visual odometry benefits from metric depth, but it degrades when dynamic objects, occlusions, illumination changes and unreliable depth violate the short-horizon photometric and depth-geometric consistency that direct alignment assumes. Existing approaches handle these cases with semantic filtering, explicit occlusion reasoning, illumination adaptation or hand-crafted geometric criteria, and often rely on external modules or fixed assumptions tailored to one failure mode.</p>
+      <p>We propose <strong>Con-DSO</strong>, a consistency-aware RGB-D direct sparse odometry framework that <strong>predicts dense photometric and depth-geometric consistency uncertainty</strong> from temporally adjacent RGB-D frame pairs. The network is trained with flow-guided photometric errors and projective depth-consistency errors, so consistency violations become pixel-level uncertainty. The pairwise predictions form a <strong>host-side quality prior</strong> for keyframe-based tracking, applied through <strong>quality-aware support-pixel selection</strong> and <strong>decoupled photometric-geometric weighting</strong>: unreliable observations are attenuated continuously instead of being hard-rejected or gated by a threshold.</p>
+      <p>On five public RGB-D benchmarks, Con-DSO lowers the average absolute trajectory error of the direct RGB-D DSO baseline by over 20% on ICL-NUIM and by 50–80% on RGB-D Scenes V2, TUM/Bonn and OpenLORIS. Full SLAM systems with loop closure remain more accurate on some benchmarks; the results explorer below shows every sequence.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block alt" id="video">
+  <div class="wrap">
+    <p class="kicker">02 · Video</p>
+    <h2>Con-DSO in three and a half minutes</h2>
+    <div class="yt" id="yt" data-id="9O7Qj9SEBgk">
+      <button type="button" class="yt-play" aria-label="Play the Con-DSO video on YouTube">
+        <img src="images/video-poster.jpg" alt="" loading="lazy">
+        <span class="yt-btn" aria-hidden="true">▶</span>
+        <span class="yt-note">Plays from YouTube (youtube-nocookie.com) when you click</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="method">
+  <div class="wrap">
+    <p class="kicker">03 · Method</p>
+    <h2>A learned quality prior inside direct sparse odometry</h2>
+    <figure class="figure"><img src="images/overview.jpg" alt="Con-DSO overview: adjacent RGB-D pairs around the host keyframe pass through ConsistencyNet, giving pairwise photometric and geometric uncertainty; these form a host-side quality prior that drives quality-aware pixel selection and decoupled photo-geo weighting before tracking and sliding-window bundle adjustment." width="1800" height="913" loading="lazy"><figcaption>Fig. 1: overview of Con-DSO.</figcaption></figure>
+    <ol class="steps">
+      <li><b>1</b><h3>Local pair inference</h3><p>Around each host keyframe, the two adjacent RGB-D frame pairs (T−1, T) and (T, T+1) are taken.</p></li>
+      <li><b>2</b><h3>Pairwise consistency uncertainty</h3><p>ConsistencyNet predicts dense photometric and geometric uncertainty for each pair.</p></li>
+      <li><b>3</b><h3>Host-side quality prior</h3><p>The pairwise maps are fused into one quality prior for the host keyframe.</p></li>
+      <li><b>4</b><h3>Quality-aware pixel selection</h3><p>The prior guides which support pixels are selected for direct alignment.</p></li>
+      <li><b>5</b><h3>Decoupled photo-geo weighting</h3><p>Photometric and geometric residuals are weighted separately; the geometric weight acts only on the translational part of the pose.</p></li>
+      <li><b>6</b><h3>Tracking and windowed BA</h3><p>Unreliable observations are attenuated continuously, not rejected, before sliding-window optimization.</p></li>
+    </ol>
+    <figure class="figure"><img src="images/network.jpg" alt="ConsistencyNet: a photometric branch and a geometric branch linked by a local correlation; trained on TartanAir with reference errors from ground-truth flow and pose and a heteroscedastic NLL loss." width="1800" height="1101" loading="lazy"><figcaption>Fig. 2: the consistency network, trained only on synthetic TartanAir and applied to every benchmark without fine-tuning.</figcaption></figure>
+  </div>
+</section>
+
+<section class="block alt" id="uncertainty">
+  <div class="wrap">
+    <p class="kicker">04 · Learned uncertainty</p>
+    <h2>Where the network distrusts the input</h2>
+    <figure class="figure"><img src="images/uncertainty.jpg" alt="Uncertainty maps for dynamic, occlusion, illumination-change and normal scenes, two examples each: RGB, depth, photometric and geometric uncertainty." width="1800" height="676" loading="lazy"><figcaption>Fig. 3: RGB, depth, photometric and geometric uncertainty for two examples per condition. Brighter = higher predicted uncertainty.</figcaption></figure>
+  </div>
+</section>
+
+<section class="block" id="results">
+  <div class="wrap">
+    <p class="kicker">05 · Results</p>
+    <h2>Trajectory error on five RGB-D benchmarks</h2>
+    <p class="lead">Pick a benchmark and a sequence. CVO, ACVO and RGBD-DSO are the direct odometry baselines; ORB-SLAM3 and SR-SLAM are full-SLAM references with backend optimization and loop closure.</p>
+    <div class="tabs" role="tablist" id="ds-tabs"></div>
+    <div class="metric-row" id="seq-tabs" role="group" aria-label="Sequence"></div>
+    <figure class="chart" id="ate-chart"><figcaption><strong id="ate-title"></strong><span id="ate-sub"></span></figcaption><div class="bars"></div></figure>
+    <p class="verdict" id="ate-verdict" role="status"></p>
+    <div class="table-scroll"><table class="stage-table" id="ate-table"></table></div>
+    <figure class="figure"><img src="images/trajectories.jpg" alt="Trajectories on ICL 05, TUM w-xyz, BONN mov-box and OpenLORIS market: ground truth black, Con-DSO red, baselines dashed." width="1887" height="519" loading="lazy"><figcaption>Fig. 4: representative trajectories (ICL 05, TUM w-xyz, BONN mov-box, OpenLORIS market). Black: ground truth; red: Con-DSO; dashed: baselines.</figcaption></figure>
+  </div>
+</section>
+
+<section class="block alt" id="ablation">
+  <div class="wrap">
+    <p class="kicker">06 · Ablation</p>
+    <h2>Pixel selection and weighting work together</h2>
+    <div class="metric-row" id="abl-tabs" role="group" aria-label="Ablation dataset"></div>
+    <figure class="chart" id="abl-chart"><figcaption><strong id="abl-title"></strong><span>Average ATE RMSE (Table II) · lower is better · P = quality-aware pixel selection, W = decoupled weighting</span></figcaption><div class="bars"></div></figure>
+    <p class="note" id="abl-note"></p>
+  </div>
+</section>
+
+<section class="block" id="cite">
+  <div class="wrap">
+    <p class="kicker">07 · Cite</p>
+    <h2>Citation</h2>
+    <div class="bib"><pre id="bibtex">@misc{zhang2026condso,
+  title         = {Con-DSO: Learning Short-Horizon Consistency Priors for RGB-D Direct Sparse Odometry},
+  author        = {Zhang, Haolan and Canh, Thanh Nguyen and Li, Chenghao and Gao, Ziyan and Jiang, Xiongwen and Chong, Nak Young},
+  eprint        = {2605.27952},
+  archivePrefix = {arXiv},
+  year          = {2026}
+}</pre><button type="button" class="copy" id="copy-bib">Copy</button></div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-row">
+    <p>© 2026 the authors · <a href="https://pairs-lab.github.io/">PAIRS Lab</a> · Results shown are from the arXiv version (2605.27952).</p>
+    <a href="#main">Back to top ↑</a>
+  </div>
+</footer>
+</body>
+</html>
